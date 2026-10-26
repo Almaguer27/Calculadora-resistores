@@ -105,54 +105,94 @@ def obtener_etiqueta_resistor(value, tol):
     """
 
 # ==========================================
-# 2. INTERFAZ STREAMLIT
+# 2. INTERFAZ EN STREAMLIT (CON ESTILO COLAB)
 # ==========================================
-st.set_page_config(page_title="Calculadora de Resistores", page_icon="⚡", layout="centered")
+st.set_page_config(page_title="Calculadora de Resistores", page_icon="⚡", layout="wide")
 
-st.title("⚡ Calculadora de Redes Resistivas")
-st.markdown("### Análisis de topologías con Código de Colores")
+# Forzar el fondo gris del estilo Colab
+st.markdown("""
+<style>
+    .stApp { background-color: #EAECEE; }
+</style>
+""", unsafe_allow_html=True)
 
-col1, col2 = st.columns(2)
-with col1:
+# Encabezado principal igual al de Colab
+st.markdown("""
+<div style="background-color: #2C3E50; padding: 20px; width: 100%; text-align: center; border-radius: 8px; font-family: 'Segoe UI', sans-serif; margin-bottom: 20px;">
+    <h1 style="color: white; margin: 0; font-size: 24px;">Calculadora de Resistores de Precisión</h1>
+    <p style="color: #BDC3C7; margin: 5px 0 0 0; font-size: 14px;">Análisis de topologías Serie, Paralelo y Mixtas con Código de Colores</p>
+</div>
+""", unsafe_allow_html=True)
+
+# Dividir la pantalla en dos paneles (Panel izquierdo 35%, Panel derecho 65%)
+col_izq, col_der = st.columns([1, 2.2])
+
+with col_izq:
+    st.markdown("<h3 style='color: #2C3E50; font-family: \"Segoe UI\", sans-serif; margin-top: 0;'>⚙️ Parámetros</h3><hr style='border:1px solid #D5D8DC;'>", unsafe_allow_html=True)
     objetivo = st.number_input("Valor Deseado (Ω):", min_value=0.1, value=4700.0, step=100.0)
-with col2:
     tolerancia = st.number_input("Tolerancia Aceptada (%):", min_value=0.1, value=5.0, step=1.0)
+    btn_calc = st.button("🔍 Calcular Topologías", type="primary", use_container_width=True)
 
-if st.button("🔍 Calcular Topologías", type="primary"):
-    with st.spinner("Espere unos momentos... ⏳🔋"):
-        time.sleep(1.5) 
+with col_der:
+    espacio_resultados = st.empty()
+    
+    if btn_calc:
+        # Animación y texto de espera
+        espacio_resultados.markdown("""
+        <div style='background-color: #FFFFFF; padding: 40px; text-align: center; border: 1px solid #D5D8DC; border-radius: 5px; font-family: "Segoe UI", sans-serif;'>
+            <h2 style='color: #2980B9;'>Espere unos momentos... ⏳🔋</h2>
+            <p style='color: #7F8C8D;'>Calculando la mejor red resistiva y generando códigos de colores</p>
+        </div>
+        """, unsafe_allow_html=True)
+        time.sleep(1.5) # Tiempo de espera
         
         resistencias = obtener_lista_resistencias(tolerancia)
         resultados = encontrar_mejores_combinaciones(objetivo, resistencias, tolerancia)
-
-    if not resultados:
-        st.error("❌ No existen combinaciones dentro de los parámetros indicados.")
-    else:
         
-        mejor = resultados[0]
-        st.markdown(f"## 🏆 1er Lugar: `{mejor['expresion']}`")
-        st.markdown(f"**Eq:** {mejor['valor_eq']:g} Ω &nbsp;&nbsp;|&nbsp;&nbsp; **Error:** {mejor['error']}% &nbsp;&nbsp;|&nbsp;&nbsp; **Tipo:** {mejor['tipo']}")
-        
-        conteo = Counter(mejor['combinacion'])
-        colores_html = "<div>"
-        for val, cant in sorted(conteo.items()):
-            colores_html += f"<div style='margin-bottom: 8px;'><span style='font-size:16px; font-weight:bold; color:#2C3E50; margin-right:8px;'>{cant}x</span> {obtener_etiqueta_resistor(val, tolerancia)}</div>"
-        colores_html += "</div>"
-        st.markdown(colores_html, unsafe_allow_html=True)
+        if not resultados:
+            espacio_resultados.markdown("<div style='background: #FFFFFF; padding: 20px; border-left: 5px solid #E74C3C; border-radius: 5px;'><h3 style='color: #E74C3C; margin:0;'>Sin resultados</h3><p style='color:#2C3E50;'>No existen combinaciones dentro del margen de error indicado.</p></div>", unsafe_allow_html=True)
+        else:
+            # HTML para 1er Lugar (Trofeo)
+            mejor = resultados[0]
+            conteo = Counter(mejor['combinacion'])
+            colores_html = ""
+            for val, cant in sorted(conteo.items()):
+                colores_html += f"<div style='margin-bottom: 8px;'><span style='font-size:16px; font-weight:bold; color:#2C3E50; margin-right:8px;'>{cant}x</span> {obtener_etiqueta_resistor(val, tolerancia)}</div>"
 
-        st.divider()
-
-        if len(resultados) > 1:
-            iconos = ["🥈 2do Lugar", "🥉 3er Lugar"]
+            html_final = f"""
+            <div style='background-color: #FFFFFF; padding: 25px; border: 1px solid #D5D8DC; border-radius: 5px; font-family: "Segoe UI", sans-serif; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
+                <h4 style='color: #27AE60; margin: 0 0 10px 0; border-bottom: 1px solid #D5D8DC; padding-bottom: 10px; font-size:18px;'>🏆 1er LUGAR</h4>
+                <h1 style='color: #2C3E50; margin: 15px 0; font-family: Consolas, monospace; font-size: 32px;'>{mejor['expresion']}</h1>
+                <p style='color: #7F8C8D; font-size: 15px;'>Valor Eq: <b style='color:#2C3E50;'>{mejor['valor_eq']:g} Ω</b> &nbsp;&nbsp;|&nbsp;&nbsp; Error: <b style='color:#2C3E50;'>{mejor['error']}%</b> &nbsp;&nbsp;|&nbsp;&nbsp; Tipo: <b style='color:#2C3E50;'>{mejor['tipo']}</b></p>
+                <div style='margin-top: 20px; background: #F8F9F9; padding: 15px; border-radius: 5px; border-left: 4px solid #2980B9;'>
+                    <h5 style='color: #2C3E50; margin: 0 0 15px 0; font-size:14px;'>🛒 Requisito de Componentes (Bandas de Color):</h5>
+                    {colores_html}
+                </div>
+            </div>
+            """
             
-            for i, r in enumerate(resultados[1:3]):
-                st.markdown(f"#### {iconos[i]}: `{r['expresion']}`")
-                st.markdown(f"**Eq:** {r['valor_eq']:g} Ω &nbsp;&nbsp;|&nbsp;&nbsp; **Error:** {r['error']}%")
-                
-                conteo_alt = Counter(r['combinacion'])
-                colores_alt_html = "<div style='display:flex; flex-wrap: wrap; margin-bottom: 20px;'>"
-                for val, cant in sorted(conteo_alt.items()):
-                    for _ in range(cant): 
-                        colores_alt_html += obtener_etiqueta_resistor(val, tolerancia)
-                colores_alt_html += "</div>"
-                st.markdown(colores_alt_html, unsafe_allow_html=True)
+            # HTML para 2do y 3er Lugar (Medallas)
+            if len(resultados) > 1:
+                iconos = ["🥈 2do Lugar", "🥉 3er Lugar"]
+                html_final += "<h4 style='color: #2C3E50; margin-top: 25px; font-family: \"Segoe UI\", sans-serif;'>Alternativas Secundarias:</h4>"
+                for i, r in enumerate(resultados[1:3]):
+                    conteo_alt = Counter(r['combinacion'])
+                    colores_alt_html = ""
+                    for val, cant in sorted(conteo_alt.items()):
+                        for _ in range(cant): 
+                            colores_alt_html += obtener_etiqueta_resistor(val, tolerancia)
+
+                    html_final += f"""
+                    <div style='background-color: #FFFFFF; border: 1px solid #D5D8DC; border-radius: 5px; padding: 15px; margin-bottom: 10px; font-family: "Segoe UI", sans-serif;'>
+                        <div style='display: flex; justify-content: space-between; margin-bottom: 15px;'>
+                            <span style='font-family: Consolas, monospace; font-size: 18px; font-weight: bold; color: #2C3E50;'>{iconos[i]}: &nbsp;{r['expresion']}</span>
+                            <span style='color: #7F8C8D; font-size: 15px; font-weight:bold;'>{r['valor_eq']:g} Ω (Err: {r['error']}%)</span>
+                        </div>
+                        <div style='display:flex; flex-wrap: wrap;'>
+                            {colores_alt_html}
+                        </div>
+                    </div>
+                    """
+            
+            # Mostrar los resultados
+            espacio_resultados.markdown(html_final, unsafe_allow_html=True)
