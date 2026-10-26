@@ -1,10 +1,11 @@
-import streamlit as st
+import ipywidgets as widgets
+from IPython.display import display, HTML
 import itertools
 from collections import Counter
 import time
 
 # ==========================================
-# 1. LÓGICA MATEMÁTICA
+# 1. LÓGICA MATEMÁTICA Y DE COMPONENTES
 # ==========================================
 E12 = [1.0, 1.2, 1.5, 1.8, 2.2, 2.7, 3.3, 3.9, 4.7, 5.6, 6.8, 8.2]
 E24 = [1.0, 1.1, 1.2, 1.3, 1.5, 1.6, 1.8, 2.0, 2.2, 2.4, 2.7, 3.0, 
@@ -105,59 +106,116 @@ def obtener_etiqueta_resistor(value, tol):
     """
 
 # ==========================================
-# 2. INTERFAZ STREAMLIT
+# 3. INTERFAZ GRÁFICA PARA GOOGLE COLAB
 # ==========================================
-st.set_page_config(page_title="Calculadora de Resistores", page_icon="⚡", layout="centered")
 
-st.title("⚡ Calculadora de Redes Resistivas")
-st.markdown("### Análisis de topologías con Código de Colores")
+header_html = widgets.HTML("""
+<div style="background-color: #2C3E50; padding: 20px; width: 100%; text-align: center; border-radius: 8px 8px 0 0; font-family: 'Segoe UI', sans-serif;">
+    <h1 style="color: white; margin: 0; font-size: 24px;">Calculadora de Resistores de Precisión</h1>
+    <p style="color: #BDC3C7; margin: 5px 0 0 0; font-size: 14px;">Análisis de topologías Serie, Paralelo y Mixtas con Código de Colores</p>
+</div>
+""")
 
-col1, col2 = st.columns(2)
-with col1:
-    objetivo = st.number_input("Valor Deseado (Ω):", min_value=0.1, value=4700.0, step=100.0)
-with col2:
-    tolerancia = st.number_input("Tolerancia Aceptada (%):", min_value=0.1, value=5.0, step=1.0)
+input_obj = widgets.FloatText(value=4700, layout=widgets.Layout(width='100%'))
+input_tol = widgets.FloatText(value=5, layout=widgets.Layout(width='100%'))
+btn_calc = widgets.Button(description='🔍 Calcular Topologías', button_style='info', layout=widgets.Layout(width='100%', height='40px'))
+btn_calc.style.button_color = '#2980B9'
 
-if st.button("🔍 Calcular Topologías", type="primary"):
-    # Animación de carga y dibujo
-    with st.spinner("Espere unos momentos... ⏳🔋 Calculando la mejor red..."):
-        time.sleep(1) # Pausa visual de 1 segundo para que se vea la animación
-        
+left_panel = widgets.VBox([
+    widgets.HTML("<h3 style='color: #2C3E50; font-family: \"Segoe UI\", sans-serif; margin-top: 0;'>⚙️ Parámetros</h3><hr style='border:1px solid #D5D8DC;'>"),
+    widgets.HTML("<div style='color: #2C3E50; font-family: \"Segoe UI\", sans-serif; font-weight: bold; margin-bottom: 5px;'>Valor Deseado (Ω):</div>"),
+    input_obj,
+    widgets.HTML("<div style='color: #7F8C8D; font-family: \"Segoe UI\", sans-serif; font-size: 12px; margin-bottom: 15px;'>Ej. 4700, 330.5</div>"),
+    widgets.HTML("<div style='color: #2C3E50; font-family: \"Segoe UI\", sans-serif; font-weight: bold; margin-bottom: 5px;'>Tolerancia Aceptada (%):</div>"),
+    input_tol,
+    widgets.HTML("<div style='color: #7F8C8D; font-family: \"Segoe UI\", sans-serif; font-size: 12px; margin-bottom: 25px;'>Aplica Serie E12 (≥10) o E24 (<10)</div>"),
+    btn_calc
+])
+left_panel.layout = widgets.Layout(background_color='#FFFFFF', padding='25px', border='1px solid #D5D8DC', width='35%', border_radius='0 0 0 8px')
+
+out_right = widgets.Output()
+out_right.layout = widgets.Layout(width='65%', padding='0 0 0 20px')
+
+def al_presionar_calcular(b):
+    # Pantalla de carga
+    with out_right:
+        out_right.clear_output()
+        display(HTML("""
+        <div style='background-color: #FFFFFF; padding: 40px; text-align: center; border: 1px solid #D5D8DC; border-radius: 5px; font-family: "Segoe UI", sans-serif;'>
+            <h2 style='color: #2980B9;'>Espere unos momentos... ⏳🔋</h2>
+            <p style='color: #7F8C8D;'>Calculando la mejor red resistiva y generando códigos de colores</p>
+        </div>
+        """))
+    
+    time.sleep(1.5) # Pausa para visualizar la carga
+    
+    with out_right:
+        out_right.clear_output()
+        try:
+            objetivo = float(input_obj.value)
+            tolerancia = float(input_tol.value)
+            if objetivo <= 0 or tolerancia < 0:
+                raise ValueError
+        except ValueError:
+            display(HTML("<div style='background: #FFFFFF; padding: 20px; border-left: 5px solid #E74C3C; border-radius: 5px;'><h3 style='color: #E74C3C; margin:0;'>Error</h3><p style='color:#2C3E50;'>Ingresa valores numéricos positivos.</p></div>"))
+            return
+
         resistencias = obtener_lista_resistencias(tolerancia)
         resultados = encontrar_mejores_combinaciones(objetivo, resistencias, tolerancia)
-
-    if not resultados:
-        st.error("❌ No existen combinaciones dentro de los parámetros indicados.")
-    else:
-        st.success("¡Cálculo finalizado exitosamente!")
         
-        # 1er LUGAR (Trofeo)
+        if not resultados:
+            display(HTML("<div style='background: #FFFFFF; padding: 20px; border-left: 5px solid #E74C3C; border-radius: 5px;'><h3 style='color: #E74C3C; margin:0;'>Sin resultados</h3><p style='color:#2C3E50;'>No existen combinaciones dentro del margen de error indicado.</p></div>"))
+            return
+            
+        # PROCESAR 1er LUGAR
         mejor = resultados[0]
-        st.markdown(f"## 🏆 1er Lugar: `{mejor['expresion']}`")
-        st.markdown(f"**Eq:** {mejor['valor_eq']:g} Ω &nbsp;&nbsp;|&nbsp;&nbsp; **Error:** {mejor['error']}% &nbsp;&nbsp;|&nbsp;&nbsp; **Tipo:** {mejor['tipo']}")
-        
         conteo = Counter(mejor['combinacion'])
-        colores_html = "<div>"
+        
+        colores_html = ""
         for val, cant in sorted(conteo.items()):
             colores_html += f"<div style='margin-bottom: 8px;'><span style='font-size:16px; font-weight:bold; color:#2C3E50; margin-right:8px;'>{cant}x</span> {obtener_etiqueta_resistor(val, tolerancia)}</div>"
-        colores_html += "</div>"
-        st.markdown(colores_html, unsafe_allow_html=True)
 
-        st.divider()
-
-        # 2do y 3er LUGAR
+        html_top = f"""
+        <div style='background-color: #FFFFFF; padding: 25px; border: 1px solid #D5D8DC; border-radius: 5px; font-family: "Segoe UI", sans-serif; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
+            <h4 style='color: #27AE60; margin: 0 0 10px 0; border-bottom: 1px solid #D5D8DC; padding-bottom: 10px; font-size:18px;'>🏆 1er LUGAR</h4>
+            <h1 style='color: #2C3E50; margin: 15px 0; font-family: Consolas, monospace; font-size: 32px;'>{mejor['expresion']}</h1>
+            <p style='color: #7F8C8D; font-size: 15px;'>Valor Eq: <b style='color:#2C3E50;'>{mejor['valor_eq']:g} Ω</b> &nbsp;&nbsp;|&nbsp;&nbsp; Error: <b style='color:#2C3E50;'>{mejor['error']}%</b> &nbsp;&nbsp;|&nbsp;&nbsp; Tipo: <b style='color:#2C3E50;'>{mejor['tipo']}</b></p>
+            <div style='margin-top: 20px; background: #F8F9F9; padding: 15px; border-radius: 5px; border-left: 4px solid #2980B9;'>
+                <h5 style='color: #2C3E50; margin: 0 0 15px 0; font-size:14px;'>🛒 Requisito de Componentes (Bandas de Color):</h5>
+                {colores_html}
+            </div>
+        </div>
+        """
+        
+        # PROCESAR 2do y 3er LUGAR
+        html_alts = ""
         if len(resultados) > 1:
-            iconos = ["🥈", "🥉"]
-            textos = ["2do Lugar", "3er Lugar"]
-            
+            iconos = ["🥈 2do Lugar", "🥉 3er Lugar"]
+            html_alts += "<h4 style='color: #2C3E50; margin-top: 25px; font-family: \"Segoe UI\", sans-serif;'>Alternativas Secundarias:</h4>"
             for i, r in enumerate(resultados[1:3]):
-                st.markdown(f"#### {iconos[i]} {textos[i]}: `{r['expresion']}`")
-                st.markdown(f"**Eq:** {r['valor_eq']:g} Ω &nbsp;&nbsp;|&nbsp;&nbsp; **Error:** {r['error']}%")
-                
                 conteo_alt = Counter(r['combinacion'])
-                colores_alt_html = "<div style='display:flex; flex-wrap: wrap; margin-bottom: 20px;'>"
+                colores_alt_html = ""
                 for val, cant in sorted(conteo_alt.items()):
-                    for _ in range(cant): # Dibuja cada resistencia individualmente
+                    for _ in range(cant): 
                         colores_alt_html += obtener_etiqueta_resistor(val, tolerancia)
-                colores_alt_html += "</div>"
-                st.markdown(colores_alt_html, unsafe_allow_html=True)
+
+                html_alts += f"""
+                <div style='background-color: #FFFFFF; border: 1px solid #D5D8DC; border-radius: 5px; padding: 15px; margin-bottom: 10px; font-family: "Segoe UI", sans-serif;'>
+                    <div style='display: flex; justify-content: space-between; margin-bottom: 15px;'>
+                        <span style='font-family: Consolas, monospace; font-size: 18px; font-weight: bold; color: #2C3E50;'>{iconos[i]}: &nbsp;{r['expresion']}</span>
+                        <span style='color: #7F8C8D; font-size: 15px; font-weight:bold;'>{r['valor_eq']:g} Ω (Err: {r['error']}%)</span>
+                    </div>
+                    <div style='display:flex; flex-wrap: wrap;'>
+                        {colores_alt_html}
+                    </div>
+                </div>
+                """
+        
+        display(HTML(html_top + html_alts))
+
+btn_calc.on_click(al_presionar_calcular)
+
+main_box = widgets.HBox([left_panel, out_right])
+main_box.layout = widgets.Layout(background_color='#EAECEE', padding='20px', display='flex', flex_flow='row', border_radius='0 0 8px 8px')
+
+display(header_html, main_box)
