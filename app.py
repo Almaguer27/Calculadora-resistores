@@ -90,7 +90,6 @@ def obtener_etiqueta_resistor(value, tol):
     c2 = color_map.get(d2, '#000000')
     cm = mult_map.get(m, '#000000')
     
-    # Todo en una sola línea para evitar errores de renderizado en Streamlit
     return f"<div style='display:inline-flex; align-items:center; background:#F5DEB3; padding:4px 10px; border-radius:8px; border:1px solid #D2B48C; margin-right:10px; margin-top:5px; box-shadow: 1px 1px 3px rgba(0,0,0,0.1);'><span style='margin-right:10px; color:#2C3E50; font-weight:bold; font-family:monospace; font-size:15px;'>{value:g}Ω</span><div style='width:8px; height:22px; background:{c1}; margin:0 2px; border:1px solid rgba(0,0,0,0.3);'></div><div style='width:8px; height:22px; background:{c2}; margin:0 2px; border:1px solid rgba(0,0,0,0.3);'></div><div style='width:8px; height:22px; background:{cm}; margin:0 2px; border:1px solid rgba(0,0,0,0.3);'></div><div style='width:15px; height:22px;'></div><div style='width:8px; height:22px; background:{ct}; margin:0 2px; border:1px solid rgba(0,0,0,0.3);'></div></div>"
 
 # ==========================================
@@ -98,17 +97,14 @@ def obtener_etiqueta_resistor(value, tol):
 # ==========================================
 st.set_page_config(page_title="Calculadora de Resistores", page_icon="⚡", layout="wide")
 
-# CSS para forzar colores y arreglar el problema del texto blanco sobre fondo blanco
 st.markdown("""
 <style>
     .stApp { background-color: #EAECEE; }
-    /* Fuerza a que los textos de los inputs sean oscuros y legibles */
     div[data-testid="stNumberInput"] label p {
         color: #2C3E50 !important;
         font-weight: 700 !important;
         font-size: 16px !important;
     }
-    /* Mejora visual del botón */
     .stButton>button {
         background-color: #2980B9 !important;
         color: white !important;
@@ -123,10 +119,8 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Encabezado principal
 st.markdown("<div style='background-color:#2C3E50; padding:20px; width:100%; text-align:center; border-radius:8px; font-family:sans-serif; margin-bottom:20px;'><h1 style='color:white; margin:0; font-size:24px;'>Calculadora de Resistores de Precisión</h1><p style='color:#BDC3C7; margin:5px 0 0 0; font-size:14px;'>Análisis de topologías Serie, Paralelo y Mixtas con Código de Colores</p></div>", unsafe_allow_html=True)
 
-# Layout en dos columnas
 col_izq, col_der = st.columns([1, 2.2])
 
 with col_izq:
@@ -140,7 +134,6 @@ with col_der:
     espacio_resultados = st.empty()
     
     if btn_calc:
-        # Animación de espera
         espacio_resultados.markdown("<div style='background-color:#FFFFFF; padding:40px; text-align:center; border:1px solid #D5D8DC; border-radius:8px; font-family:sans-serif;'><h2 style='color:#2980B9;'>Espere unos momentos... ⏳🔋</h2><p style='color:#7F8C8D; font-size:16px;'>Calculando la mejor red resistiva y generando códigos de colores</p></div>", unsafe_allow_html=True)
         time.sleep(1.5)
         
@@ -150,24 +143,22 @@ with col_der:
         if not resultados:
             espacio_resultados.markdown("<div style='background:#FFFFFF; padding:20px; border-left:5px solid #E74C3C; border-radius:5px;'><h3 style='color:#E74C3C; margin:0;'>Sin resultados</h3><p style='color:#2C3E50;'>No existen combinaciones dentro del margen de error indicado.</p></div>", unsafe_allow_html=True)
         else:
+            # Lanza la animación de celebración en pantalla
+            st.balloons()
+            
             mejor = resultados[0]
             conteo = Counter(mejor['combinacion'])
             colores_html = "".join([f"<div style='margin-bottom:8px;'><span style='font-size:16px; font-weight:bold; color:#2C3E50; margin-right:8px;'>{cant}x</span>{obtener_etiqueta_resistor(val, tolerancia)}</div>" for val, cant in sorted(conteo.items())])
 
-            # HTML 1er Lugar
             html_final = f"<div style='background-color:#FFFFFF; padding:25px; border:1px solid #D5D8DC; border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,0.05); font-family:sans-serif;'><h4 style='color:#27AE60; margin:0 0 10px 0; border-bottom:1px solid #D5D8DC; padding-bottom:10px; font-size:18px;'>🏆 1er LUGAR (Mejor Opción)</h4><h1 style='color:#2C3E50; margin:15px 0; font-family:monospace; font-size:32px;'>{mejor['expresion']}</h1><p style='color:#7F8C8D; font-size:15px;'>Valor Equivalente: <b style='color:#2C3E50;'>{mejor['valor_eq']:g} Ω</b> &nbsp;|&nbsp; Error: <b style='color:#2C3E50;'>{mejor['error']}%</b> &nbsp;|&nbsp; Topología: <b style='color:#2C3E50;'>{mejor['tipo']}</b></p><div style='margin-top:20px; background:#F8F9F9; padding:15px; border-radius:5px; border-left:4px solid #2980B9;'><h5 style='color:#2C3E50; margin:0 0 15px 0;'>🛒 Requisito de Componentes:</h5>{colores_html}</div></div>"
             
-            # HTML 2do y 3er Lugar
             if len(resultados) > 1:
                 iconos = ["🥈 2do Lugar", "🥉 3er Lugar"]
                 html_final += "<h4 style='color:#2C3E50; margin-top:25px; font-family:sans-serif;'>Alternativas Secundarias:</h4>"
                 
-                # Bucle para asegurar que procese hasta 2 alternativas más (el 2do y 3er lugar)
                 for i, r in enumerate(resultados[1:3]):
                     conteo_alt = Counter(r['combinacion'])
                     colores_alt_html = "".join([obtener_etiqueta_resistor(val, tolerancia) for val, cant in sorted(conteo_alt.items()) for _ in range(cant)])
-
                     html_final += f"<div style='background-color:#FFFFFF; border:1px solid #D5D8DC; border-radius:8px; padding:15px; margin-bottom:12px; font-family:sans-serif;'><div style='display:flex; justify-content:space-between; margin-bottom:15px;'><span style='font-family:monospace; font-size:18px; font-weight:bold; color:#2C3E50;'>{iconos[i]}: &nbsp;{r['expresion']}</span><span style='color:#7F8C8D; font-size:15px; font-weight:bold;'>{r['valor_eq']:g} Ω (Err: {r['error']}%)</span></div><div style='display:flex; flex-wrap:wrap;'>{colores_alt_html}</div></div>"
             
-            # Renderizar todo limpio
             espacio_resultados.markdown(html_final, unsafe_allow_html=True)
