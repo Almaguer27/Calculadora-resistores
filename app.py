@@ -10,7 +10,8 @@ E12 = [1.0, 1.2, 1.5, 1.8, 2.2, 2.7, 3.3, 3.9, 4.7, 5.6, 6.8, 8.2]
 E24 = [1.0, 1.1, 1.2, 1.3, 1.5, 1.6, 1.8, 2.0, 2.2, 2.4, 2.7, 3.0, 
        3.3, 3.6, 3.9, 4.3, 4.7, 5.1, 5.6, 6.2, 6.8, 7.5, 8.2, 9.1]
 
-def generar_valores_comerciales(serie, max_decadas=6):
+# Se aumentó a 8 décadas para incluir valores en el rango de los Mega-ohmios
+def generar_valores_comerciales(serie, max_decadas=8):
     valores = []
     for decada in range(max_decadas):
         for valor_base in serie:
@@ -143,7 +144,6 @@ with col_der:
         if not resultados:
             espacio_resultados.markdown("<div style='background:#FFFFFF; padding:20px; border-left:5px solid #E74C3C; border-radius:5px;'><h3 style='color:#E74C3C; margin:0;'>Sin resultados</h3><p style='color:#2C3E50;'>No existen combinaciones dentro del margen de error indicado.</p></div>", unsafe_allow_html=True)
         else:
-            # Lanza la animación de celebración en pantalla
             st.balloons()
             
             mejor = resultados[0]
